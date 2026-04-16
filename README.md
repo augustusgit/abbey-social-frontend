@@ -1,6 +1,6 @@
 # Abbey Social — Frontend
 
-Production-oriented **React + TypeScript** SPA for the Abbey Social backend (Express + Prisma + JWT access + httpOnly refresh cookie).
+Production-oriented **React + TypeScript** SPA for the Abbey Social backend.
 
 ## Features
 
@@ -31,35 +31,6 @@ Copy `.env.example` to `.env`.
 
 **Production (Ubuntu)**: inject `VITE_API_URL` at build time (e.g. `https://api.example.com`).
 
-## Routes
-
-| Path | Description |
-| ---- | ----------- |
-| `/` | Landing |
-| `/login`, `/register` | Auth (guest only) |
-| `/home` | Dashboard (protected) |
-| `/settings` | Account settings (protected) |
-| `/profile/:userId` | Public profile + follow |
-| `/profile/:userId/followers` | Followers list |
-| `/profile/:userId/following` | Following list |
-
-## Project layout
-
-```
-src/
-├── api/              # Axios client + endpoint map
-├── app/              # Query client, AuthProvider, env
-├── features/
-│   ├── auth/
-│   ├── account/
-│   ├── relationships/
-│   └── health/
-├── hooks/            # useAuth, etc.
-├── pages/
-├── routes/
-├── types/
-└── utils/
-```
 
 ## Path alias
 

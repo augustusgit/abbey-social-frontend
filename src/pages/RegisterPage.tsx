@@ -1,8 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { useToast } from '@/hooks/useToast'
 import { Button } from '@/components/common/Button'
 import { registerFormSchema, type RegisterFormValues } from '@/features/auth/validators'
 import { getErrorMessage } from '@/utils/apiError'
@@ -10,7 +10,7 @@ import { getErrorMessage } from '@/utils/apiError'
 export default function RegisterPage() {
   const navigate = useNavigate()
   const { register: registerUser } = useAuth()
-  const [formError, setFormError] = useState<string | null>(null)
+  const toast = useToast()
 
   const {
     register,
@@ -22,7 +22,6 @@ export default function RegisterPage() {
   })
 
   const onSubmit = async (values: RegisterFormValues) => {
-    setFormError(null)
     const nameTrim = values.name?.trim()
     try {
       await registerUser({
@@ -31,9 +30,10 @@ export default function RegisterPage() {
         username: values.username.trim().toLowerCase(),
         ...(nameTrim ? { name: nameTrim } : {}),
       })
+      toast.success('Account created successfully')
       void navigate('/home', { replace: true })
     } catch (e) {
-      setFormError(getErrorMessage(e, 'Could not register'))
+      toast.error(getErrorMessage(e, 'Could not register'))
     }
   }
 
@@ -50,11 +50,6 @@ export default function RegisterPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-950" noValidate>
-        {formError && (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200" role="alert">
-            {formError}
-          </p>
-        )}
         <div className="space-y-1">
           <label htmlFor="reg-email" className="text-sm font-medium text-slate-800 dark:text-slate-200">
             Email

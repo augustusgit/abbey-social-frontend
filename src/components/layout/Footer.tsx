@@ -1,7 +1,7 @@
 export function Footer() {
   return (
     <footer className="border-t border-slate-200 bg-slate-50 py-6 text-center text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
-      <p>Abbey Social · React + Vite · Express-ready</p>
+      <p>Abbey Social · designed by Augustus</p>
     </footer>
   )
 }

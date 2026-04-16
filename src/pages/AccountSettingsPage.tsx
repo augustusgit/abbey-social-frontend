@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useAuth } from '@/hooks/useAuth'
+import { useToast } from '@/hooks/useToast'
 import { Button } from '@/components/common/Button'
 import { fetchMyAccount, updateMyAccount } from '@/features/account/services/accountApi'
 import { accountSettingsSchema, type AccountSettingsFormValues } from '@/features/account/validators'
@@ -13,6 +14,7 @@ import { getErrorMessage } from '@/utils/apiError'
 export default function AccountSettingsPage() {
   const queryClient = useQueryClient()
   const { replaceUser } = useAuth()
+  const toast = useToast()
 
   const accountQuery = useQuery({
     queryKey: ['account', 'me'],
@@ -60,6 +62,10 @@ export default function AccountSettingsPage() {
       })
       void queryClient.invalidateQueries({ queryKey: ['account', 'me'] })
       void queryClient.invalidateQueries({ queryKey: ['account', 'public'] })
+      toast.success('Profile saved')
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Could not save'))
     },
   })
 

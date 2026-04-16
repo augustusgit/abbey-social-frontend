@@ -1,16 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { useToast } from '@/hooks/useToast'
 import { Button } from '@/components/common/Button'
 import { cn } from '@/utils/cn'
 import { fetchPublicAccount } from '@/features/account/services/accountApi'
 import { fetchFollowing, followUser, unfollowUser } from '@/features/relationships/services/relationshipApi'
+import type { PublicAccount } from '@/types/account'
+import type { RelationshipStats, RelationshipUserRow } from '@/types/relationship'
 import { getErrorMessage } from '@/utils/apiError'
 
 export default function ProfilePage() {
   const { userId = '' } = useParams<{ userId: string }>()
   const { user: authUser, isAuthenticated } = useAuth()
   const queryClient = useQueryClient()
+  const toast = useToast()
 
   const profileQuery = useQuery({
     queryKey: ['account', 'public', userId],
@@ -36,10 +40,78 @@ export default function ProfilePage() {
       }
       return followUser(userId)
     },
-    onSuccess: async () => {
+    onMutate: async () => {
+      if (!authUser || !profileQuery.data) return undefined
+
+      const profileKey = ['account', 'public', userId] as const
+      const followingKey = ['relationships', 'following', authUser.id] as const
+      const statsKey = ['relationships', 'stats'] as const
+
+      await queryClient.cancelQueries({ queryKey: profileKey })
+      await queryClient.cancelQueries({ queryKey: followingKey })
+      await queryClient.cancelQueries({ queryKey: statsKey })
+
+      const previousProfile = queryClient.getQueryData<PublicAccount>(profileKey)
+      const previousFollowing = queryClient.getQueryData<RelationshipUserRow[]>(followingKey)
+      const previousStats = queryClient.getQueryData<RelationshipStats>(statsKey)
+
+      const currentlyFollowing =
+        previousFollowing?.some((row) => row.userId === userId) ?? isFollowing
+      const nextFollowing = !currentlyFollowing
+
+      queryClient.setQueryData<PublicAccount>(profileKey, (prev) => {
+        if (!prev) return prev
+        const followerCount = Math.max(
+          0,
+          prev.followerCount + (nextFollowing ? 1 : -1),
+        )
+        return { ...prev, followerCount }
+      })
+
+      queryClient.setQueryData<RelationshipUserRow[]>(followingKey, (prev) => {
+        const base = prev ?? []
+        if (nextFollowing) {
+          if (base.some((row) => row.userId === userId)) return base
+          return [
+            {
+              userId,
+              username: profileQuery.data.username,
+              name: profileQuery.data.name,
+              followedAt: new Date().toISOString(),
+            },
+            ...base,
+          ]
+        }
+        return base.filter((row) => row.userId !== userId)
+      })
+
+      queryClient.setQueryData<RelationshipStats>(statsKey, (prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          followingCount: Math.max(0, prev.followingCount + (nextFollowing ? 1 : -1)),
+        }
+      })
+
+      return { previousProfile, previousFollowing, previousStats, authUserId: authUser.id }
+    },
+    onError: (error, _vars, ctx) => {
+      if (ctx) {
+        queryClient.setQueryData(['account', 'public', userId], ctx.previousProfile)
+        queryClient.setQueryData(['relationships', 'following', ctx.authUserId], ctx.previousFollowing)
+        queryClient.setQueryData(['relationships', 'stats'], ctx.previousStats)
+      }
+      toast.error(getErrorMessage(error, 'Could not update relationship'))
+    },
+    onSuccess: (data) => {
+      toast.success(data.followed ? 'Now following user' : 'Unfollowed user')
+    },
+    onSettled: async (_data, _error, _vars, ctx) => {
       await queryClient.invalidateQueries({ queryKey: ['account', 'public', userId] })
       await queryClient.invalidateQueries({ queryKey: ['relationships', 'stats'] })
-      await queryClient.invalidateQueries({ queryKey: ['relationships', 'following', authUser?.id] })
+      await queryClient.invalidateQueries({
+        queryKey: ['relationships', 'following', ctx?.authUserId ?? authUser?.id],
+      })
     },
   })
 
@@ -111,9 +183,6 @@ export default function ProfilePage() {
                     : 'Follow'}
               </Button>
             )
-          )}
-          {followMutation.isError && (
-            <p className="text-sm text-red-600 dark:text-red-400">{getErrorMessage(followMutation.error)}</p>
           )}
         </div>
       </header>

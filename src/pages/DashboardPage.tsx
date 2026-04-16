@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { useToast } from '@/hooks/useToast'
 import { Button } from '@/components/common/Button'
 import { fetchHealth } from '@/features/health/services/healthApi'
 import { fetchMyRelationshipStats } from '@/features/relationships/services/relationshipApi'
@@ -8,6 +9,7 @@ import { fetchMyRelationshipStats } from '@/features/relationships/services/rela
 export default function DashboardPage() {
   const { user, logoutAll } = useAuth()
   const navigate = useNavigate()
+  const toast = useToast()
 
   const statsQuery = useQuery({
     queryKey: ['relationships', 'stats'],
@@ -105,8 +107,13 @@ export default function DashboardPage() {
           type="button"
           variant="secondary"
           onClick={async () => {
-            await logoutAll()
-            void navigate('/login', { replace: true })
+            try {
+              await logoutAll()
+              toast.success('All sessions logged out')
+              void navigate('/login', { replace: true })
+            } catch {
+              toast.error('Could not log out all sessions')
+            }
           }}
         >
           Log out all devices

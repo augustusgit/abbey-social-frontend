@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { useToast } from '@/hooks/useToast'
 import { Button } from '@/components/common/Button'
 import { cn } from '@/utils/cn'
 
@@ -14,10 +15,16 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 export function Navbar() {
   const { user, isAuthenticated, isBootstrapping, logout } = useAuth()
   const navigate = useNavigate()
+  const toast = useToast()
 
   const handleLogout = async () => {
-    await logout()
-    void navigate('/login', { replace: true })
+    try {
+      await logout()
+      toast.success('You are now logged out')
+      void navigate('/login', { replace: true })
+    } catch {
+      toast.error('Could not log out. Please try again.')
+    }
   }
 
   return (
